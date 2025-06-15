@@ -1,14 +1,23 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, MapPin, Loader2, AlertCircle } from 'lucide-react';
+import { Search, MapPin, Loader2, AlertCircle, Star } from 'lucide-react';
 import { searchLocations } from '../services/weatherService';
 import { LocationData } from '../types/weather';
 
 interface SearchBarProps {
   onLocationSelect: (location: LocationData) => void;
   isLoading: boolean;
+  isFavorite?: (location: LocationData) => boolean;
+  onToggleFavorite?: (location: LocationData) => void;
+  currentLocation?: LocationData | null;
 }
 
-export default function SearchBar({ onLocationSelect, isLoading }: SearchBarProps) {
+export default function SearchBar({ 
+  onLocationSelect, 
+  isLoading, 
+  isFavorite, 
+  onToggleFavorite,
+  currentLocation 
+}: SearchBarProps) {
   const [query, setQuery] = useState('');
   const [locations, setLocations] = useState<LocationData[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -95,6 +104,13 @@ export default function SearchBar({ onLocationSelect, isLoading }: SearchBarProp
     setError(null);
   };
 
+  const handleToggleFavorite = (e: React.MouseEvent, location: LocationData) => {
+    e.stopPropagation();
+    if (onToggleFavorite) {
+      onToggleFavorite(location);
+    }
+  };
+
   return (
     <div className="relative w-full max-w-md mx-auto">
       <div className="relative flex items-center">
@@ -105,12 +121,31 @@ export default function SearchBar({ onLocationSelect, isLoading }: SearchBarProp
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => query.length >= 3 && setShowResults(true)}
-          className="w-full p-3 pl-10 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 
+          className="w-full p-3 pl-10 pr-20 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 
                    bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200
                    focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-600 transition-all duration-200"
           disabled={isLoading}
         />
         <Search className="absolute left-3 w-5 h-5 text-gray-400 dark:text-gray-500" />
+        
+        {/* Add to favorites button for current location */}
+        {currentLocation && isFavorite && onToggleFavorite && (
+          <button
+            onClick={(e) => handleToggleFavorite(e, currentLocation)}
+            disabled={isLoading}
+            className="absolute right-12 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+            aria-label={isFavorite(currentLocation) ? "Remove from favorites" : "Add to favorites"}
+            title={isFavorite(currentLocation) ? "Remove from favorites" : "Add to favorites"}
+          >
+            <Star 
+              className={`w-5 h-5 ${
+                isFavorite(currentLocation) 
+                  ? 'text-yellow-500 fill-yellow-500' 
+                  : 'text-gray-400 dark:text-gray-500'
+              }`} 
+            />
+          </button>
+        )}
         
         <button 
           onClick={handleGetCurrentLocation}
@@ -140,15 +175,34 @@ export default function SearchBar({ onLocationSelect, isLoading }: SearchBarProp
           className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 max-h-60 overflow-y-auto"
         >
           {locations.map((location, index) => (
-            <button
+            <div
               key={`${location.name}-${location.lat}-${location.lon}`}
-              className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150
-                       text-gray-800 dark:text-gray-200 flex items-center space-x-2"
-              onClick={() => handleLocationSelect(location)}
+              className="flex items-center justify-between px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150"
             >
-              <MapPin className="w-4 h-4 text-blue-500 dark:text-blue-400 flex-shrink-0" />
-              <span>{location.name}, {location.country}</span>
-            </button>
+              <button
+                className="flex items-center space-x-2 flex-1 text-left text-gray-800 dark:text-gray-200"
+                onClick={() => handleLocationSelect(location)}
+              >
+                <MapPin className="w-4 h-4 text-blue-500 dark:text-blue-400 flex-shrink-0" />
+                <span>{location.name}, {location.country}</span>
+              </button>
+              
+              {isFavorite && onToggleFavorite && (
+                <button
+                  onClick={(e) => handleToggleFavorite(e, location)}
+                  className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-150"
+                  aria-label={isFavorite(location) ? "Remove from favorites" : "Add to favorites"}
+                >
+                  <Star 
+                    className={`w-4 h-4 ${
+                      isFavorite(location) 
+                        ? 'text-yellow-500 fill-yellow-500' 
+                        : 'text-gray-400 dark:text-gray-500'
+                    }`} 
+                  />
+                </button>
+              )}
+            </div>
           ))}
         </div>
       )}

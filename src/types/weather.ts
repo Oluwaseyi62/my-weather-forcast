@@ -41,3 +41,8 @@ export interface LocationData {
   lat: number;
   lon: number;
 }
+
+export interface FavoriteLocation extends LocationData {
+  id: string;
+  addedAt: number;
+}
